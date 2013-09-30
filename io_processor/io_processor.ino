@@ -15,6 +15,9 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //
+
+#include <ProtoThreads.h>
+#include <Timer.h>
 #include <Wire.h>
 
 enum module_types
@@ -33,6 +36,11 @@ const int A0Pin = 10;
 const int A1Pin = 9;
 
 uint8_t selectedRegister = 0xFF;
+
+struct pt ptOutputDriver;
+struct pt ptStatus;
+Timer heartbeatTimer(500); // 500 millisecond timer.
+struct pt_sem outputUpdate;
 
 // Registers have the type in the upper nibble.
 #define REG_TYPE(X) (((X) & 0xF0) >> 4)
@@ -63,6 +71,10 @@ void setup()
     Wire.onRequest(requestEvent); // register event
     Wire.begin(getBoardNumber()); // join i2c bus with address
 
+    PT_INIT(&ptOutputDriver);
+    PT_INIT(&ptStatus);
+    PT_SEM_INIT(&outputUpdate, 1); // Set to cause an initial update.
+
     Serial.begin(9600);           // start serial for debug output
     Serial.print("\r\nQUAD-RELAY OUTPUT CAPE STARTED\r\n");
     Serial.print("Board Number: ");
@@ -79,25 +91,43 @@ void setup()
 
 }
 
+PT_THREAD(outputDriver(struct pt *pt))
+{
+    PT_BEGIN(pt);
+
+    for (;;)
+    {
+        // Wait until there is something to do.
+        PT_SEM_WAIT(pt, &outputUpdate);
+
+        // Loop through the outputs and update them.
+        // Most of the time they will remain unchanged.
+        for (int i = 0; i < NUM_OUTPUTS; i++)
+        {
+            digitalWrite(ioPin[i], currentState[i]);
+        }
+    }
+    PT_END(pt);
+}
+
+PT_THREAD(statusThread(struct pt *pt))
+{
+    PT_BEGIN(pt);
+
+    // Wait until a fixed period. May need to speed this up.
+    PT_WAIT_UNTIL(pt, heartbeatTimer.timerExpired());
+    heartbeatTimer.timerReset();
+
+    // Toggle the heartbeat/status LED.
+    digitalWrite(statusPin, !digitalRead(statusPin));
+
+    PT_END(pt);
+}
+
 void loop()
 {
-    int i;
-    static int statusCount = 0;
-
-    // Loop through the outputs and update them.
-    // Most of the time they will remain unchanged.
-    for (i = 0; i < NUM_OUTPUTS; i++)
-    {
-        digitalWrite(ioPin[i], currentState[i]);
-    }
-
-    if (statusCount++ >= 4)
-    {
-        digitalWrite(statusPin, !digitalRead(statusPin));
-        statusCount = 0;
-    }
-
-    delay(100);
+    outputDriver(&ptOutputDriver);
+    statusThread(&ptStatus);
 }
 
 uint8_t getBoardNumber()
@@ -145,6 +175,7 @@ void receiveEvent(int howMany)
             if (outputNumber < NUM_OUTPUTS)
             {
                 currentState[outputNumber] = (bool)Wire.read();
+                PT_SEM_SIGNAL(0, &outputUpdate);
             }
 
             break;
