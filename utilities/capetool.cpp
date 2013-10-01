@@ -62,6 +62,34 @@ int main(int argc, char *argv[])
         printf("Opened I/F\n");
     }
 
+#if 1
+//    char data_to_write[2]={0x12,0};
+//    char data_to_write[2]={0x12,1};
+//    char data_to_write[2]={0x00,0};
+    char data_to_write[2];
+
+    data_to_write[0] = REG_TYPE_ENCODE(REG_OUTPUT);
+    data_to_write[0] |= REG_NUM(channelNumber);
+    data_to_write[1] = newValue;
+
+    msgs[0].addr  = slaveAddress;  // slave addr for write
+    msgs[0].len   = 2;             // two byte message
+    msgs[0].flags = 0;             // simple write operation
+    msgs[0].buf   = data_to_write;
+
+    msgset.nmsgs  = 1;             // single write message
+    msgset.msgs   = msgs;
+
+    if (ioctl(file, I2C_RDWR, (unsigned long)&msgset) < 0)
+    {
+        printf("error I2C_RDWR errno=%d(%s)\n", errno, strerror(errno));
+        return -1;
+    }
+
+    data_read[6] = 0;
+
+    printf("Transaction complete\n");
+#else
     char data_to_write[2]={0x12,0};
 //    char data_to_write[2]={0x12,1};
 //    char data_to_write[2]={0x00,0};
@@ -93,6 +121,6 @@ int main(int argc, char *argv[])
     data_read[6] = 0;
 
     printf("Transaction complete: 0x%X 0x%X\n", data_read[0], data_read[1]);
-
+#endif
     return 0;
 }
