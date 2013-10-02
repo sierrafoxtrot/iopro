@@ -140,7 +140,7 @@ uint8_t getBoardNumber()
     if (A0) { address += 1; }
     if (A1) { address += 2; }
 
-    return address + 1;
+    return 0x10 + address; // Boards are addressed 0x10..0x13
 }
 
 void flushInput()

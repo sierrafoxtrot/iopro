@@ -30,7 +30,7 @@
 
 // Define device address
 // It is a better idea to include all the addresses in a header file
-#define DEVICE_ADDR 	0x04
+#define DEFAULT_DEVICE_ADDR 0x14
 
 using namespace std;
 
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     struct i2c_rdwr_ioctl_data msgset;
     struct i2c_msg msgs[2];
     int opt;
-    uint8_t slaveAddress = DEVICE_ADDR;
+    uint8_t slaveAddress = DEFAULT_DEVICE_ADDR;
     char data_read[8];
     char *busName = 0;
     uint8_t channelNumber = 0xFF;
