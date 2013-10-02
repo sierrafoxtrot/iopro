@@ -50,9 +50,10 @@ struct pt_sem outputUpdate;
 
 enum register_types
 {
-    REG_ID        = 0x00,
-    REG_OUTPUT    = 0x01,
-    REG_INVALID   = 0x0F,
+    REG_ID            = 0x00,
+    REG_OUTPUT        = 0x01,
+    REG_OUTPUT_BITMAP = 0x02,
+    REG_INVALID       = 0x0F,
 };
 
 void setup()
@@ -165,6 +166,9 @@ void receiveEvent(int howMany)
     if (Wire.available() > 0)
     {
         uint8_t outputNumber = 0xFF;
+        uint8_t newBitmap = 0xFF;
+        uint8_t mask = 0x00;
+
         switch(REG_TYPE(selectedRegister))
         {
         case REG_OUTPUT:
@@ -177,6 +181,24 @@ void receiveEvent(int howMany)
                 currentState[outputNumber] = (bool)Wire.read();
                 PT_SEM_SIGNAL(0, &outputUpdate);
             }
+
+            break;
+
+        case REG_OUTPUT_BITMAP:
+            Serial.print("BITMAP: ");
+
+            newBitmap = (uint8_t)Wire.read();
+            mask = 0x01;
+            for (int i = 0; i < NUM_OUTPUTS; i++)
+            {
+                currentState[i] = (bool)(newBitmap & mask);
+                    mask <<= 1;
+            }
+
+            PT_SEM_SIGNAL(0, &outputUpdate);
+
+            Serial.print(newBitmap);
+            Serial.print("\r\n");
 
             break;
 

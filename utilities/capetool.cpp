@@ -43,9 +43,10 @@ using namespace std;
 
 enum register_types
 {
-    REG_ID        = 0x00,
-    REG_OUTPUT    = 0x01,
-    REG_INVALID   = 0x0F,
+    REG_ID            = 0x00,
+    REG_OUTPUT        = 0x01,
+    REG_OUTPUT_BITMAP = 0x02,
+    REG_INVALID       = 0x0F,
 };
 
 int main(int argc, char *argv[])
@@ -58,8 +59,9 @@ int main(int argc, char *argv[])
     char *busName = 0;
     uint8_t channelNumber = 0xFF;
     uint8_t newValue = 0xFF;
+    uint8_t registerNumber = REG_OUTPUT;
 
-    while ((opt = getopt(argc, argv, "a:b:c:v:"))>0)
+    while ((opt = getopt(argc, argv, "a:b:c:v:r:"))>0)
     {
         switch (opt) {
         case '?': puts("Bad argument"); break;
@@ -68,6 +70,7 @@ int main(int argc, char *argv[])
         case 'a': slaveAddress = atoi(optarg); break;
         case 'c': channelNumber = atoi(optarg); break;
         case 'v': newValue = atoi(optarg); break;
+        case 'r': registerNumber = atoi(optarg); break;
         default: break;
         }
     }
@@ -113,7 +116,7 @@ int main(int argc, char *argv[])
     printf("Transaction complete: 0x%X 0x%X\n", data_read[0], data_read[1]);
 
     // Perform command
-    data_to_write[0] = REG_TYPE_ENCODE(REG_OUTPUT);
+    data_to_write[0] = REG_TYPE_ENCODE(registerNumber);
     data_to_write[0] |= REG_NUM(channelNumber);
     data_to_write[1] = newValue;
 
