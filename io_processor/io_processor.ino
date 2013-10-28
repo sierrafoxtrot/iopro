@@ -23,23 +23,24 @@
 enum module_types
 {
     MODULE_QUAD_RELAY_OUT = 1,
+    MODULE_DUAL_RELAY_OUT = 2,
 };
 
-#define NUM_OUTPUTS 4
+#define NUM_OUTPUTS 2
 
 bool currentState[NUM_OUTPUTS];
-const int ioPin[NUM_OUTPUTS] = {A3, A2, A1, A0};
+const int ioPin[NUM_OUTPUTS] = {A0, A1};
 
-const int statusPin = 11;
+const int statusPin = 8;
 
-const int A0Pin = 10;
-const int A1Pin = 9;
+const int A0Pin = A3;
+const int A1Pin = A2;
 
 uint8_t selectedRegister = 0xFF;
 
 struct pt ptOutputDriver;
 struct pt ptStatus;
-Timer heartbeatTimer(500); // 500 millisecond timer.
+Timer heartbeatTimer(1000); // 1 second timer.
 struct pt_sem outputUpdate;
 
 // Registers have the type in the upper nibble.
@@ -77,7 +78,7 @@ void setup()
     PT_SEM_INIT(&outputUpdate, 1); // Set to cause an initial update.
 
     Serial.begin(9600);           // start serial for debug output
-    Serial.print("\r\nQUAD-RELAY OUTPUT CAPE STARTED\r\n");
+    Serial.print("\r\DUAL-RELAY OUTPUT CAPE STARTED\r\n");
     Serial.print("Board Number: ");
     Serial.print(getBoardNumber());
     Serial.print("\r\n");
@@ -114,13 +115,16 @@ PT_THREAD(outputDriver(struct pt *pt))
 PT_THREAD(statusThread(struct pt *pt))
 {
     PT_BEGIN(pt);
-
+    Serial.print("Begin Status Thread\r\n");
     // Wait until a fixed period. May need to speed this up.
-    PT_WAIT_UNTIL(pt, heartbeatTimer.timerExpired());
-    heartbeatTimer.timerReset();
+    for (;;)
+    {
+        PT_WAIT_UNTIL(pt, heartbeatTimer.timerExpired());
+        heartbeatTimer.timerReset();
 
-    // Toggle the heartbeat/status LED.
-    digitalWrite(statusPin, !digitalRead(statusPin));
+        // Toggle the heartbeat/status LED.
+        digitalWrite(statusPin, !digitalRead(statusPin));
+    }
 
     PT_END(pt);
 }
@@ -133,12 +137,12 @@ void loop()
 
 uint8_t getBoardNumber()
 {
-    bool A0 = digitalRead(A0Pin);
-    bool A1 = digitalRead(A1Pin);
+    bool AddressBit0 = digitalRead(A0Pin);
+    bool AddressBit1 = digitalRead(A1Pin);
 
     uint8_t address = 0;
-    if (A0) { address += 1; }
-    if (A1) { address += 2; }
+    if (AddressBit0) { address += 1; }
+    if (AddressBit1) { address += 2; }
 
     return 0x10 + address; // Boards are addressed 0x10..0x13
 }
@@ -150,9 +154,6 @@ void flushInput()
         (void)Wire.read(); // flush the buffer
     }
 }
-
-// 1 is 10 A1
-// 2 is 11 A0
 
 // function that executes whenever data is received from master
 // this function is registered as an event, see setup()
@@ -234,7 +235,7 @@ void requestEvent(void)
         break;
 
     case REG_ID:
-        Wire.write((uint8_t)MODULE_QUAD_RELAY_OUT);
+        Wire.write((uint8_t)MODULE_DUAL_RELAY_OUT);
         break;
 
     default:
