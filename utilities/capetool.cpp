@@ -30,7 +30,7 @@
 
 // Define device address
 // It is a better idea to include all the addresses in a header file
-#define DEFAULT_DEVICE_ADDR 0x14
+#define DEFAULT_DEVICE_ADDR 0x10
 
 using namespace std;
 
@@ -49,6 +49,32 @@ enum register_types
     REG_INVALID       = 0x0F,
 };
 
+void usage(void)
+{
+    printf("The \"capetool\" utility is a simple commandline tool for testing the Sierra\n");
+    printf("Foxtrot intelligent BeagleBone capes. Based on the commandline options, it\n");
+    printf("performs the appropriate I2C read/write 0perations to drive the outputs, read\n");
+    printf("inputs and display status information from the chosen cape in a stack.\n\n");
+    printf("Operation:\n\n");
+    printf("        capetool [OPTION]...\n\n");
+    printf("        -b BUS_NAME\n");
+    printf("           I2C bus device node (eg /dev/i2c-1)\n");
+    printf("        -a SLAVE_ADDRESS\n");
+    printf("           Cape address (capes 0..3 == 0x10..0x13)\n");
+    printf("        -c CHANNEL_NUMBER\n");
+    printf("           If driving a single output, this is the Output number 0..n\n");
+    printf("           (n is number of outputs on the cape).\n");
+    printf("        -r REG_NUMBER\n");
+    printf("           If addressing a specific register such as status\n");
+    printf("           Registers:     ID = 0 (ID information for the cape)\n");
+    printf("                          OUTPUT = 1 (individually addressed output)\n");
+    printf("                          OUTPUT_BITMAP = 2 (all outputs addressed as a bitmap)");
+    printf("        -v NEW_VALUE\n");
+    printf("           New value if writing to the specified register number. Omitting\n");
+    printf("           Omittingthis option, implies a read.\n");
+    exit(1);
+}
+
 int main(int argc, char *argv[])
 {
     struct i2c_rdwr_ioctl_data msgset;
@@ -64,7 +90,7 @@ int main(int argc, char *argv[])
     while ((opt = getopt(argc, argv, "a:b:c:v:r:"))>0)
     {
         switch (opt) {
-        case '?': puts("Bad argument"); break;
+        case '?': puts("Bad argument\n\n"); usage(); break;
         case 'b': busName = (char *)malloc(strlen(optarg));
             strcpy(busName, optarg); break;
         case 'a': slaveAddress = atoi(optarg); break;
@@ -86,9 +112,6 @@ int main(int argc, char *argv[])
         printf("Opened I/F\n");
     }
 
-//    char data_to_write[2]={0x12,0};
-//    char data_to_write[2]={0x12,1};
-//    char data_to_write[2]={0x00,0};
     char data_to_write[2];
 
     // Query the module

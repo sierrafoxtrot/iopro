@@ -1,5 +1,5 @@
 //
-// io_processor - io front end processor
+// io_processor - I/O front end processor for Sierra Foxtrot BeagleBone Capes.
 // Copyright (C) 2013 Scott Finneran
 //
 // This program is free software; you can redistribute it and/or modify
