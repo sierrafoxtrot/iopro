@@ -1,3 +1,9 @@
+
+To build, (on the BeagleBone)
+
+	 g++ capetool.cpp -o capetool
+
+
 The "capetool" utility is a simple commandline tool for testing the Sierra
 Foxtrot intelligent BeagleBone capes. Based on the commandline options, it
 performs the appropriate I2C read/write 0perations to drive the outputs, read
